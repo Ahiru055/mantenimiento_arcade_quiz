@@ -22,8 +22,8 @@
   }
   .screen { position: relative; z-index: 1; width: 100%; padding: 24px 20px; }
   .title-screen { text-align: center; }
-  .arcade-title { font-size: 20px; color: #f5c842; letter-spacing: 2px; line-height: 1.6; text-shadow: 0 0 10px #f5c84288; }
-  .subtitle { font-size: 8px; color: #7fa8e8; margin-top: 16px; letter-spacing: 1px; }
+  .arcade-title { font-size: 28px; color: #f5c842; letter-spacing: 2px; line-height: 1.6; text-shadow: 0 0 10px #f5c84288; }
+  .subtitle { font-size: 12px; color: #7fa8e8; margin-top: 16px; letter-spacing: 1px; }
   .blink { animation: blink 1s step-end infinite; }
   @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
   .btn {
@@ -143,7 +143,7 @@ function render() {
   const s = state;
   if (s.screen === 'intro') {
     sc.innerHTML = `<div class="title-screen">
-      <div class="arcade-title">MANTENIMIENTO<br>QUIZ ARCADE</div>
+      <div class="arcade-title">INGENIERÍA DE<br>LA CONFIABILIDAD</div>
       <div class="subtitle">▼ RELIABILITY EDITION ▼</div>
       <hr class="pixel-divider" style="margin-top:20px">
       <div style="font-size:7px;color:#555;line-height:2.2;margin:12px 0">
@@ -247,7 +247,7 @@ function render() {
 function getGrade(score) {
   const max = Q.length * POINTS_BASE * 4;
   const pct = score / (Q.length * POINTS_BASE);
-  if (pct >= 3.5) return { stars: '★★★★★', msg: '¡EXPERTO EN MANTENIMIENTO!' };
+  if (pct >= 3.5) return { stars: '★★★★★', msg: '¡EXPERTO EN CONFIABILIDAD!' };
   if (pct >= 2.5) return { stars: '★★★★☆', msg: '¡MUY BUEN DOMINIO!' };
   if (pct >= 1.5) return { stars: '★★★☆☆', msg: 'BUEN NIVEL, SIGUE PRACTICANDO' };
   if (pct >= 0.8) return { stars: '★★☆☆☆', msg: 'NECESITAS REPASAR MÁS' };
