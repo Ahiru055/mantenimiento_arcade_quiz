@@ -1,0 +1,353 @@
+
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  #gc {
+    background: #050510;
+    border-radius: 16px;
+    padding: 0;
+    min-height: 520px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Press Start 2P', monospace;
+    overflow: hidden;
+    position: relative;
+  }
+  .scanlines {
+    position: absolute; inset: 0; pointer-events: none; z-index: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.15) 2px, rgba(0,0,0,0.15) 4px);
+    border-radius: 16px;
+  }
+  .screen { position: relative; z-index: 1; width: 100%; padding: 24px 20px; }
+  .title-screen { text-align: center; }
+  .arcade-title { font-size: 20px; color: #f5c842; letter-spacing: 2px; line-height: 1.6; text-shadow: 0 0 10px #f5c84288; }
+  .subtitle { font-size: 8px; color: #7fa8e8; margin-top: 16px; letter-spacing: 1px; }
+  .blink { animation: blink 1s step-end infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+  .btn {
+    background: transparent; border: 2px solid; cursor: pointer;
+    font-family: 'Press Start 2P', monospace;
+    padding: 10px 20px; font-size: 9px; margin-top: 20px;
+    border-radius: 4px; transition: all 0.1s; letter-spacing: 1px;
+  }
+  .btn-yellow { border-color: #f5c842; color: #f5c842; }
+  .btn-yellow:hover { background: #f5c842; color: #050510; }
+  .btn-teal { border-color: #1D9E75; color: #1D9E75; }
+  .btn-teal:hover { background: #1D9E75; color: #050510; }
+  .hud {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 14px; font-size: 7px; flex-wrap: wrap; gap: 8px;
+  }
+  .hud-score { color: #f5c842; }
+  .hud-lives { color: #e05a5a; }
+  .hud-combo { color: #9f7fe8; }
+  .hud-q { color: #7fa8e8; }
+  .timer-bar-wrap {
+    width: 100%; height: 8px; background: #1a1a2e;
+    border-radius: 4px; margin-bottom: 18px; overflow: hidden;
+  }
+  .timer-bar {
+    height: 100%; border-radius: 4px; transition: width 1s linear, background 0.5s;
+  }
+  .q-box {
+    background: #0d0d20; border: 2px solid #2a2a4a;
+    border-radius: 8px; padding: 16px; margin-bottom: 16px;
+    font-size: 8px; color: #e0e0ff; line-height: 1.8; min-height: 80px;
+    display: flex; align-items: center;
+  }
+  .options { display: flex; flex-direction: column; gap: 8px; }
+  .opt-btn {
+    background: #0d0d20; border: 2px solid #2a2a4a;
+    color: #a0a8e8; font-family: 'Press Start 2P', monospace;
+    font-size: 7px; padding: 10px 12px; text-align: left;
+    border-radius: 6px; cursor: pointer; transition: all 0.1s;
+    line-height: 1.7; letter-spacing: 0.5px;
+  }
+  .opt-btn:hover { border-color: #7fa8e8; color: #c0d0ff; background: #131328; }
+  .opt-btn.correct { border-color: #1D9E75; background: #0a2018; color: #5DCAA5; }
+  .opt-btn.wrong { border-color: #D85A30; background: #200a08; color: #F0997B; }
+  .opt-btn.disabled { pointer-events: none; opacity: 0.6; }
+  .opt-btn.correct, .opt-btn.wrong { pointer-events: none; opacity: 1; }
+  .feedback-banner {
+    text-align: center; padding: 12px; border-radius: 8px;
+    font-size: 9px; margin-bottom: 14px; letter-spacing: 1px;
+  }
+  .fb-correct { background: #0a2018; border: 2px solid #1D9E75; color: #5DCAA5; }
+  .fb-wrong { background: #200a08; border: 2px solid #D85A30; color: #F0997B; }
+  .go-screen, .win-screen { text-align: center; }
+  .go-title { font-size: 18px; color: #e05a5a; margin-bottom: 16px; letter-spacing: 2px; }
+  .win-title { font-size: 14px; color: #f5c842; margin-bottom: 16px; letter-spacing: 1px; }
+  .final-score { font-size: 11px; color: #f5c842; margin: 12px 0; }
+  .final-grade { font-size: 8px; color: #7fa8e8; margin: 8px 0; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+  @keyframes pop { 0%{transform:scale(1)} 50%{transform:scale(1.03)} 100%{transform:scale(1)} }
+  .shake { animation: shake 0.4s ease; }
+  .pop { animation: pop 0.3s ease; }
+  .star-row { font-size: 18px; margin: 10px 0; }
+  .pixel-divider { border: none; border-top: 2px solid #1a1a3a; margin: 14px 0; }
+</style>
+
+<div id="gc">
+  <div class="scanlines"></div>
+  <div class="screen" id="screen"></div>
+</div>
+
+<script>
+const Q = [
+  { q: "¿Qué mide el MTBF?", opts: ["Tiempo total de operación\nsin mantenimiento", "Tiempo promedio de\nreparación de un equipo", "Tiempo promedio entre\nuna falla y la siguiente", "La eficiencia total\ndel equipo"], c: 2 },
+  { q: "¿Qué mide el MTTR?", opts: ["Tiempo total de vida\núltil del equipo", "Tiempo que tarda el equipo\nen volver a funcionar", "Número de fallas\nen un periodo", "Frecuencia de mantenimiento\npreventivo"], c: 1 },
+  { q: "¿Qué variables usa el OEE?", opts: ["Costo, tiempo\ny producción", "Disponibilidad, rendimiento\ny calidad", "Producción, mantenimiento\ny fallas", "Tiempo, velocidad\ny eficiencia"], c: 1 },
+  { q: "¿A qué hace referencia\nla curva de la bañera?", opts: ["A los costos de\nmantenimiento en el tiempo", "A las fallas aleatorias\nen equipos nuevos", "A las 3 etapas de la\nvida de cualquier equipo", "A la eficiencia de\nproducción en distintas fases"], c: 2 },
+  { q: "¿Qué significa que\nbeta sea mayor que 1?", opts: ["El equipo está\nen fase inicial", "El equipo no\npresenta fallas", "El equipo está en\nfase de desgaste", "El equipo tiene\nfallas aleatorias"], c: 2 },
+  { q: "¿Cuál es la fórmula\nde la disponibilidad?", opts: ["MTTR / (MTBF + MTTR)", "MTBF × MTTR", "MTBF / (MTBF + MTTR)", "MTTR / MTBF"], c: 2 },
+  { q: "¿Con qué símbolo se\nrepresenta el parámetro\nde Forma?", opts: ["Alfa (α)", "Lambda (λ)", "Beta (β)", "Gamma (γ)"], c: 2 },
+  { q: "¿Con qué símbolo se\nrepresenta el parámetro\nde Escala?", opts: ["Delta (δ)", "Theta (θ)", "Beta (β)", "Eta (η)"], c: 3 },
+  { q: "¿Cómo se calcula\nel rendimiento?", opts: ["Producción total /\ntiempo total", "Velocidad teórica /\nvelocidad real", "Velocidad real /\nvelocidad teórica", "Producción real /\nproducción planificada"], c: 2 }
+];
+
+let state = { screen: 'intro', qi: 0, score: 0, lives: 3, combo: 1, timer: 15, timerID: null, answered: false, highScore: 0 };
+const POINTS_BASE = 100;
+const TIMER_MAX = 15;
+
+function beep(freq, dur, type='square', vol=0.08) {
+  try {
+    const ac = new AudioContext();
+    const o = ac.createOscillator();
+    const g = ac.createGain();
+    o.connect(g); g.connect(ac.destination);
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + dur);
+    o.start(); o.stop(ac.currentTime + dur);
+  } catch(e) {}
+}
+
+function playCorrect() {
+  beep(523, 0.1); setTimeout(()=>beep(659, 0.1), 100); setTimeout(()=>beep(784, 0.2), 200);
+}
+function playWrong() {
+  beep(200, 0.15, 'sawtooth', 0.06); setTimeout(()=>beep(150, 0.2, 'sawtooth', 0.06), 150);
+}
+function playTick() { beep(880, 0.05, 'sine', 0.03); }
+function playGameOver() {
+  beep(300, 0.2, 'sawtooth'); setTimeout(()=>beep(200, 0.2, 'sawtooth'), 200); setTimeout(()=>beep(100, 0.4, 'sawtooth'), 400);
+}
+function playWin() {
+  [523,659,784,1047].forEach((f,i) => setTimeout(()=>beep(f, 0.15), i*120));
+}
+
+function render() {
+  const sc = document.getElementById('screen');
+  const s = state;
+  if (s.screen === 'intro') {
+    sc.innerHTML = `<div class="title-screen">
+      <div class="arcade-title">MANTENIMIENTO<br>QUIZ ARCADE</div>
+      <div class="subtitle">▼ RELIABILITY EDITION ▼</div>
+      <hr class="pixel-divider" style="margin-top:20px">
+      <div style="font-size:7px;color:#555;line-height:2.2;margin:12px 0">
+        ${Q.length} PREGUNTAS &nbsp;|&nbsp; 3 VIDAS &nbsp;|&nbsp; 15 SEG/PREG
+      </div>
+      <div style="font-size:7px;color:#7fa8e8;line-height:2">COMBO BONUS: X2 → X3 → X4</div>
+      ${s.highScore > 0 ? `<div style="font-size:7px;color:#f5c842;margin-top:10px">HIGH SCORE: ${s.highScore}</div>` : ''}
+      <br>
+      <button class="btn btn-yellow blink" onclick="startGame()">▶ INICIAR JUEGO</button>
+    </div>`;
+  } else if (s.screen === 'playing') {
+    const q = Q[s.qi];
+    const timerPct = (s.timer / TIMER_MAX) * 100;
+    const timerColor = timerPct > 50 ? '#1D9E75' : timerPct > 25 ? '#f5c842' : '#D85A30';
+    sc.innerHTML = `
+      <div class="hud">
+        <span class="hud-score">★ ${s.score}</span>
+        <span class="hud-q">${s.qi + 1}/${Q.length}</span>
+        <span class="hud-combo">${s.combo > 1 ? 'COMBO x' + s.combo + '!' : 'COMBO x1'}</span>
+        <span class="hud-lives">${'♥'.repeat(s.lives)}${'♡'.repeat(3-s.lives)}</span>
+      </div>
+      <div class="timer-bar-wrap">
+        <div class="timer-bar" id="tbar" style="width:${timerPct}%;background:${timerColor}"></div>
+      </div>
+      <div class="q-box" id="qbox">${q.q.replace(/\n/g,'<br>')}</div>
+      <div class="options">
+        ${q.opts.map((o,i)=>`<button class="opt-btn" id="opt${i}" onclick="answer(${i})">${['A','B','C','D'][i]}) ${o.replace(/\n/g,'<br>')}</button>`).join('')}
+      </div>`;
+  } else if (s.screen === 'feedback_correct') {
+    const q = Q[s.qi - 1];
+    const pts = POINTS_BASE * s.combo;
+    sc.innerHTML = `
+      <div class="hud">
+        <span class="hud-score">★ ${s.score}</span>
+        <span class="hud-q">${s.qi}/${Q.length}</span>
+        <span class="hud-combo">COMBO x${s.combo}</span>
+        <span class="hud-lives">${'♥'.repeat(s.lives)}${'♡'.repeat(3-s.lives)}</span>
+      </div>
+      <div class="feedback-banner fb-correct pop">
+        ✓ ¡CORRECTO! &nbsp; +${pts} PTS
+      </div>
+      <div class="q-box">${q.q.replace(/\n/g,'<br>')}</div>
+      <div class="options">
+        ${q.opts.map((o,i)=>`<button class="opt-btn disabled ${i===q.c?'correct':''}" id="opt${i}">${['A','B','C','D'][i]}) ${o.replace(/\n/g,'<br>')}</button>`).join('')}
+      </div>
+      <div style="text-align:center;margin-top:16px">
+        <button class="btn btn-teal" onclick="nextQuestion()">SIGUIENTE ▶</button>
+      </div>`;
+  } else if (s.screen === 'feedback_wrong') {
+    const q = Q[s.qi - 1];
+    sc.innerHTML = `
+      <div class="hud">
+        <span class="hud-score">★ ${s.score}</span>
+        <span class="hud-q">${s.qi}/${Q.length}</span>
+        <span class="hud-combo" style="color:#888">COMBO ROTO</span>
+        <span class="hud-lives">${'♥'.repeat(s.lives)}${'♡'.repeat(3-s.lives)}</span>
+      </div>
+      <div class="feedback-banner fb-wrong shake">
+        ✗ INCORRECTO &nbsp; −1 VIDA
+      </div>
+      <div class="q-box">${q.q.replace(/\n/g,'<br>')}</div>
+      <div class="options">
+        ${q.opts.map((o,i)=>`<button class="opt-btn disabled ${i===q.c?'correct':'wrong_shown'}" style="${i===s.lastWrong?'border-color:#D85A30;background:#200a08;color:#F0997B;':''}" id="opt${i}">${['A','B','C','D'][i]}) ${o.replace(/\n/g,'<br>')}</button>`).join('')}
+      </div>
+      ${s.lives > 0 ? `<div style="text-align:center;margin-top:16px"><button class="btn btn-teal" onclick="nextQuestion()">CONTINUAR ▶</button></div>` : `<div style="text-align:center;margin-top:16px"><button class="btn" style="border-color:#e05a5a;color:#e05a5a" onclick="showGameOver()">VER RESULTADO ▶</button></div>`}`;
+    document.getElementById('screen').querySelector('.feedback-banner').classList.add('shake');
+  } else if (s.screen === 'gameover') {
+    const grade = getGrade(s.score);
+    sc.innerHTML = `<div class="go-screen">
+      <div class="go-title">GAME OVER</div>
+      <div class="star-row">${grade.stars}</div>
+      <div class="final-score">PUNTUACIÓN: ${s.score}</div>
+      ${s.score >= s.highScore ? `<div style="font-size:7px;color:#f5c842;margin:6px">★ NUEVO RÉCORD ★</div>` : `<div style="font-size:7px;color:#555;margin:6px">REC: ${s.highScore}</div>`}
+      <div class="final-grade">${grade.msg}</div>
+      <hr class="pixel-divider">
+      <div style="font-size:7px;color:#555;line-height:2.2">PREGUNTAS: ${s.qi}/${Q.length}<br>VIDAS PERDIDAS: ${3-s.lives}</div>
+      <br>
+      <button class="btn btn-yellow" onclick="startGame()">▶ REINTENTAR</button>
+      &nbsp;
+      <button class="btn" style="border-color:#555;color:#777" onclick="goIntro()">MENÚ</button>
+    </div>`;
+  } else if (s.screen === 'victory') {
+    const grade = getGrade(s.score);
+    sc.innerHTML = `<div class="win-screen">
+      <div style="font-size:8px;color:#f5c842;margin-bottom:8px">¡FELICIDADES!</div>
+      <div class="win-title">¡COMPLETADO!</div>
+      <div class="star-row">${grade.stars}</div>
+      <div class="final-score">PUNTUACIÓN FINAL: ${s.score}</div>
+      ${s.score >= s.highScore ? `<div style="font-size:7px;color:#f5c842;margin:6px">★ NUEVO RÉCORD ★</div>` : `<div style="font-size:7px;color:#555;margin:6px">REC: ${s.highScore}</div>`}
+      <div class="final-grade">${grade.msg}</div>
+      <hr class="pixel-divider">
+      <div style="font-size:7px;color:#7fa8e8;line-height:2.2">RESPUESTAS CORRECTAS: ${s.correct}/${Q.length}<br>VIDAS RESTANTES: ${s.lives}/3</div>
+      <br>
+      <button class="btn btn-yellow" onclick="startGame()">▶ JUGAR DE NUEVO</button>
+      &nbsp;
+      <button class="btn" style="border-color:#555;color:#777" onclick="goIntro()">MENÚ</button>
+    </div>`;
+  }
+}
+
+function getGrade(score) {
+  const max = Q.length * POINTS_BASE * 4;
+  const pct = score / (Q.length * POINTS_BASE);
+  if (pct >= 3.5) return { stars: '★★★★★', msg: '¡EXPERTO EN MANTENIMIENTO!' };
+  if (pct >= 2.5) return { stars: '★★★★☆', msg: '¡MUY BUEN DOMINIO!' };
+  if (pct >= 1.5) return { stars: '★★★☆☆', msg: 'BUEN NIVEL, SIGUE PRACTICANDO' };
+  if (pct >= 0.8) return { stars: '★★☆☆☆', msg: 'NECESITAS REPASAR MÁS' };
+  return { stars: '★☆☆☆☆', msg: '¡A ESTUDIAR SE HA DICHO!' };
+}
+
+function startGame() {
+  clearInterval(state.timerID);
+  state = { screen: 'playing', qi: 0, score: 0, lives: 3, combo: 1, timer: TIMER_MAX, timerID: null, answered: false, highScore: state.highScore, correct: 0, lastWrong: -1 };
+  render();
+  startTimer();
+}
+
+function goIntro() {
+  clearInterval(state.timerID);
+  state.screen = 'intro';
+  render();
+}
+
+function startTimer() {
+  clearInterval(state.timerID);
+  state.timer = TIMER_MAX;
+  state.timerID = setInterval(() => {
+    state.timer--;
+    if (state.timer <= 5 && state.timer > 0) playTick();
+    const bar = document.getElementById('tbar');
+    if (bar) {
+      const pct = (state.timer / TIMER_MAX) * 100;
+      const col = pct > 50 ? '#1D9E75' : pct > 25 ? '#f5c842' : '#D85A30';
+      bar.style.width = pct + '%';
+      bar.style.background = col;
+    }
+    if (state.timer <= 0) {
+      clearInterval(state.timerID);
+      timeOut();
+    }
+  }, 1000);
+}
+
+function timeOut() {
+  playWrong();
+  state.lives--;
+  state.combo = 1;
+  state.lastWrong = -1;
+  state.qi++;
+  state.screen = 'feedback_wrong';
+  if (state.lives <= 0) { showGameOver(); return; }
+  render();
+}
+
+function answer(i) {
+  if (state.answered) return;
+  state.answered = true;
+  clearInterval(state.timerID);
+  const q = Q[state.qi];
+  state.qi++;
+  if (i === q.c) {
+    const pts = POINTS_BASE * state.combo;
+    state.score += pts;
+    state.combo = Math.min(state.combo + 1, 4);
+    state.correct = (state.correct || 0) + 1;
+    playCorrect();
+    state.screen = 'feedback_correct';
+  } else {
+    state.lives--;
+    state.combo = 1;
+    state.lastWrong = i;
+    playWrong();
+    state.screen = 'feedback_wrong';
+    if (state.lives <= 0 && state.qi >= Q.length) { showGameOver(); return; }
+  }
+  state.answered = false;
+  render();
+}
+
+function nextQuestion() {
+  if (state.qi >= Q.length) {
+    if (state.lives <= 0) { showGameOver(); return; }
+    showVictory(); return;
+  }
+  state.screen = 'playing';
+  render();
+  startTimer();
+}
+
+function showGameOver() {
+  clearInterval(state.timerID);
+  if (state.score > state.highScore) state.highScore = state.score;
+  state.screen = 'gameover';
+  playGameOver();
+  render();
+}
+
+function showVictory() {
+  clearInterval(state.timerID);
+  if (state.score > state.highScore) state.highScore = state.score;
+  state.screen = 'victory';
+  playWin();
+  render();
+}
+
+render();
+</script>
